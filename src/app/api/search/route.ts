@@ -19,8 +19,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ dreams: [], query: query || "" });
   }
 
-  // Cap at 100 chars to prevent abuse
-  const safeQuery = query.slice(0, 100);
+  // Cap at 100 chars and strip PostgREST special characters to prevent filter injection
+  const safeQuery = query
+    .slice(0, 100)
+    .replace(/[%_.*,()\\]/g, "");
+
+  if (safeQuery.length < 2) {
+    return NextResponse.json({ dreams: [], query: safeQuery });
+  }
 
   try {
     const { data, error } = await supabase
@@ -31,7 +37,8 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Search query failed:", error);
+      return NextResponse.json({ error: "Search failed" }, { status: 500 });
     }
 
     return NextResponse.json({

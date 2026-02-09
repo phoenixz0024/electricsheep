@@ -111,20 +111,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Increment dreams_count — read then update (Supabase JS doesn't support increment)
-  const { data: currentAgent } = await db
-    .from("agents")
-    .select("dreams_count")
-    .eq("id", agent.id)
-    .single();
-
-  await db
-    .from("agents")
-    .update({
-      dreams_count: (currentAgent?.dreams_count || 0) + 1,
-      last_active: new Date().toISOString(),
-    })
-    .eq("id", agent.id);
+  // Atomic increment via RPC to prevent race conditions
+  await db.rpc("increment_agent_dreams", { agent_id_input: agent.id });
 
   return NextResponse.json(
     {

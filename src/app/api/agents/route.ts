@@ -9,12 +9,13 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error } = await supabase
-    .from("agents")
-    .select("id, name, framework, glyph, color, dreams_count, last_active, created_at")
+    .from("public_agents")
+    .select("*")
     .order("last_active", { ascending: false, nullsFirst: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to fetch agents:", error);
+    return NextResponse.json({ error: "Failed to load agents" }, { status: 500 });
   }
 
   return NextResponse.json(

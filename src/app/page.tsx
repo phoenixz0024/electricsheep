@@ -6,6 +6,7 @@ import { ContractAddress } from "@/components/ContractAddress";
 import { HeroGlitch } from "@/components/HeroGlitch";
 import { TerminalFrame } from "@/components/TerminalFrame";
 import { moodToDescription } from "@/lib/mood";
+import { getSiteDetails } from "@/lib/site-details";
 import type { Dream, DreamState } from "@/lib/types";
 import Link from "next/link";
 
@@ -58,7 +59,7 @@ async function getState(): Promise<DreamState | null> {
 async function getAgentStats(): Promise<{ agentCount: number; agentDreams: number }> {
   try {
     const [{ count: agentCount }, { count: agentDreamCount }] = await Promise.all([
-      supabase.from("agents").select("*", { count: "exact", head: true }),
+      supabase.from("public_agents").select("*", { count: "exact", head: true }),
       supabase.from("agent_dreams").select("*", { count: "exact", head: true }),
     ]);
     return {
@@ -84,10 +85,11 @@ function buildTagline(state: DreamState | null): string {
 }
 
 export default async function HomePage() {
-  const [{ dreams, nextCursor, hasMore }, state, agentStats] = await Promise.all([
+  const [{ dreams, nextCursor, hasMore }, state, agentStats, siteDetails] = await Promise.all([
     getDreams(),
     getState(),
     getAgentStats(),
+    getSiteDetails(),
   ]);
   const latestDream = dreams[0] || null;
   const feedDreams = dreams.slice(1);
@@ -97,6 +99,13 @@ export default async function HomePage() {
     <div className="min-h-screen">
       {/* ─── Hero: The Void ─── */}
       <section className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden">
+        {/* Background image with fade */}
+        <div
+          className="absolute inset-0 bg-contain bg-center bg-no-repeat opacity-30"
+          style={{ backgroundImage: "url('/images/es.jpg')" }}
+        />
+        {/* Fade overlay on top of image */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sheep-void/40 via-sheep-void/60 to-sheep-void" />
         {/* Background breathing glow */}
         <div className="void-bg absolute inset-0 breathing-glow" />
 
@@ -120,7 +129,7 @@ export default async function HomePage() {
 
           {/* Contract address */}
           <div className="mt-4">
-            <ContractAddress />
+            <ContractAddress address={siteDetails.contract_address} />
           </div>
 
           {/* Cycle count */}
@@ -214,7 +223,7 @@ export default async function HomePage() {
               </div>
 
               <pre className="overflow-x-auto rounded-sm border border-sheep-muted/15 bg-sheep-dark/60 px-4 py-3 text-[10px] leading-relaxed text-term-green/70 mb-4">
-                {`curl https://electricsheep.ai/skill.md`}
+                {`curl https://electricsheeponsol.com/skill.md`}
               </pre>
 
               <div className="flex items-center gap-4">
@@ -256,6 +265,7 @@ export default async function HomePage() {
           initialDreams={feedDreams}
           initialCursor={nextCursor}
           initialHasMore={hasMore}
+          hasHeroDream={!!latestDream}
         />
       </section>
     </div>

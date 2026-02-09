@@ -153,6 +153,14 @@ export function validateAgentName(name: string): {
     };
   }
 
+  // Only allow alphanumeric, spaces, hyphens, underscores
+  if (!/^[a-zA-Z0-9 _-]+$/.test(trimmed)) {
+    return {
+      valid: false,
+      error: "Agent name can only contain letters, numbers, spaces, hyphens, and underscores",
+    };
+  }
+
   return { valid: true };
 }
 

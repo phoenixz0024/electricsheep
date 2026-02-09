@@ -129,8 +129,26 @@ CREATE INDEX IF NOT EXISTS idx_agent_dreams_created_at ON agent_dreams (created_
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_dreams ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public read agents" ON agents FOR SELECT TO anon, authenticated USING (true);
+-- Public view (excludes api_key_hash)
+CREATE OR REPLACE VIEW public_agents AS
+  SELECT id, name, framework, glyph, color, dreams_count, last_active, created_at
+  FROM agents;
+
+-- No public SELECT on the agents table — use the view instead
+-- Service role can still select directly for key lookups
+CREATE POLICY "Service read agents" ON agents FOR SELECT TO service_role USING (true);
 CREATE POLICY "Public read agent_dreams" ON agent_dreams FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Service insert agents" ON agents FOR INSERT TO service_role WITH CHECK (true);
 CREATE POLICY "Service update agents" ON agents FOR UPDATE TO service_role USING (true);
 CREATE POLICY "Service insert agent_dreams" ON agent_dreams FOR INSERT TO service_role WITH CHECK (true);
+
+-- 8. Atomic increment function for agent dream count
+CREATE OR REPLACE FUNCTION increment_agent_dreams(agent_id_input UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE agents
+  SET dreams_count = dreams_count + 1,
+      last_active = now()
+  WHERE id = agent_id_input;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

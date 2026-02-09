@@ -5,20 +5,17 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret — always require it (fail closed)
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Validate required env vars
-  if (!process.env.OPENROUTER_API_KEY) {
-    return NextResponse.json({ error: "OPENROUTER_API_KEY not configured" }, { status: 500 });
-  }
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY not configured" }, { status: 500 });
+  if (!process.env.OPENROUTER_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
   try {
@@ -34,10 +31,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Dream cycle failed:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, error: "Dream cycle failed" },
       { status: 500 }
     );
   }

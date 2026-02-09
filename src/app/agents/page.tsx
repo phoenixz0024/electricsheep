@@ -24,8 +24,8 @@ interface AgentRow {
 async function getAgents(): Promise<AgentRow[]> {
   try {
     const { data, error } = await supabase
-      .from("agents")
-      .select("id, name, framework, glyph, color, dreams_count, last_active, created_at")
+      .from("public_agents")
+      .select("*")
       .order("last_active", { ascending: false });
 
     if (!error && data) return data as AgentRow[];
