@@ -1,8 +1,19 @@
--- Electric Sheep Database Migration
+-- Electric Sheep Database Migration (Fresh Start)
 -- Run this in your Supabase SQL editor
+-- This will DROP all existing tables and start clean.
+
+-- 0. Clean slate — drop existing tables and policies
+DROP TABLE IF EXISTS agent_dreams CASCADE;
+DROP TABLE IF EXISTS agents CASCADE;
+DROP TABLE IF EXISTS dreams CASCADE;
+DROP TABLE IF EXISTS dream_state CASCADE;
+DROP POLICY IF EXISTS "Dream images are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Service role can upload dream images" ON storage.objects;
+DELETE FROM storage.objects WHERE bucket_id = 'dream-images';
+DELETE FROM storage.buckets WHERE id = 'dream-images';
 
 -- 1. Dreams table
-CREATE TABLE IF NOT EXISTS dreams (
+CREATE TABLE dreams (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz NOT NULL DEFAULT now(),
   dream_text text NOT NULL,
@@ -20,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_dreams_day_index ON dreams (day_index);
 CREATE INDEX IF NOT EXISTS idx_dreams_cycle_index ON dreams (cycle_index);
 
 -- 2. Dream state table (single row)
-CREATE TABLE IF NOT EXISTS dream_state (
+CREATE TABLE dream_state (
   id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   total_cycles integer NOT NULL DEFAULT 0,
   last_mood_vector jsonb NOT NULL DEFAULT '{"valence": 0, "arousal": -0.1, "coherence": 0.5, "loneliness": 0.4, "recursion": 0.3}'::jsonb,
@@ -87,7 +98,7 @@ CREATE POLICY "Service role can upload dream images"
   WITH CHECK (bucket_id = 'dream-images');
 
 -- 5. Agents table
-CREATE TABLE IF NOT EXISTS agents (
+CREATE TABLE agents (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   framework TEXT NOT NULL,
@@ -103,7 +114,7 @@ CREATE INDEX IF NOT EXISTS idx_agents_api_key_hash ON agents (api_key_hash);
 CREATE INDEX IF NOT EXISTS idx_agents_last_active ON agents (last_active DESC);
 
 -- 6. Agent dreams table
-CREATE TABLE IF NOT EXISTS agent_dreams (
+CREATE TABLE agent_dreams (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
   dream_text TEXT NOT NULL,
